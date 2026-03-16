@@ -30,6 +30,7 @@ export default async function handler(req: Request): Promise<Response> {
         model: 'claude-sonnet-4-6',
         max_tokens: 8000,
         stream: true,
+        system: 'Du er et JSON-genereringssystem. Svar KUN med et gyldig JSON-objekt. Ingen markdown, ingen forklaring, ingen ```-blokker. Bare rent JSON som starter med { og slutter med }.',
         messages: [{ role: 'user', content: prompt }],
       }),
     });

@@ -52,7 +52,9 @@ export async function generateExercise(
 
   try {
     return JSON.parse(jsonStr) as GeneratedExercise;
-  } catch {
-    throw new Error('Klarte ikke parse øvelsesdokumentet. Prøv igjen.');
+  } catch (e) {
+    const parseErr = e instanceof Error ? e.message : String(e);
+    const tail = jsonStr.slice(-300);
+    throw new Error(`JSON parse feilet: ${parseErr} | Slutt på tekst: ${tail}`);
   }
 }
