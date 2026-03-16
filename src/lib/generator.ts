@@ -18,19 +18,32 @@ export async function generateExercise(
     throw new Error(`Generering feilet: ${error}`);
   }
 
-  // Read streaming response
+  // Read streaming SSE response and parse client-side
   const reader = response.body?.getReader();
   if (!reader) throw new Error('Ingen respons fra server.');
 
   const decoder = new TextDecoder();
   let fullText = '';
+  let sseBuffer = '';
 
   while (true) {
     const { done, value } = await reader.read();
     if (done) break;
-    const chunk = decoder.decode(value, { stream: true });
-    fullText += chunk;
-    onProgress?.(fullText);
+    sseBuffer += decoder.decode(value, { stream: true });
+    const lines = sseBuffer.split('\n');
+    sseBuffer = lines.pop() ?? '';
+    for (const line of lines) {
+      if (!line.startsWith('data: ')) continue;
+      const data = line.slice(6).trim();
+      if (!data || data === '[DONE]') continue;
+      try {
+        const parsed = JSON.parse(data);
+        if (parsed.type === 'content_block_delta' && parsed.delta?.type === 'text_delta') {
+          fullText += parsed.delta.text;
+          onProgress?.(fullText);
+        }
+      } catch { /* skip malformed SSE lines */ }
+    }
   }
 
   // Extract JSON — try multiple strategies

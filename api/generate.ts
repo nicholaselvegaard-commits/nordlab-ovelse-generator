@@ -40,31 +40,12 @@ export default async function handler(req: Request): Promise<Response> {
       return new Response(`Anthropic API error ${anthropicRes.status}: ${err}`, { status: 500 });
     }
 
-    let buffer = '';
-    const transformer = new TransformStream<Uint8Array, Uint8Array>({
-      transform(chunk, controller) {
-        buffer += new TextDecoder().decode(chunk);
-        const lines = buffer.split('\n');
-        buffer = lines.pop() ?? '';
-        for (const line of lines) {
-          if (!line.startsWith('data: ')) continue;
-          const data = line.slice(6).trim();
-          if (!data || data === '[DONE]') continue;
-          try {
-            const parsed = JSON.parse(data);
-            if (
-              parsed.type === 'content_block_delta' &&
-              parsed.delta?.type === 'text_delta'
-            ) {
-              controller.enqueue(new TextEncoder().encode(parsed.delta.text));
-            }
-          } catch { /* skip */ }
-        }
+    // Forward raw SSE stream to client — zero CPU in edge function
+    return new Response(anthropicRes.body, {
+      headers: {
+        'Content-Type': 'text/event-stream',
+        'Cache-Control': 'no-cache',
       },
-    });
-
-    return new Response(anthropicRes.body!.pipeThrough(transformer), {
-      headers: { 'Content-Type': 'text/plain; charset=utf-8' },
     });
 
   } catch (err) {
