@@ -1,12 +1,11 @@
 import Anthropic from '@anthropic-ai/sdk';
 
+export const runtime = 'edge';
+export const maxDuration = 60;
+
 const client = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
 });
-
-export const config = {
-  maxDuration: 120,
-};
 
 export default async function handler(req: Request): Promise<Response> {
   if (req.method !== 'POST') {
@@ -19,29 +18,36 @@ export default async function handler(req: Request): Promise<Response> {
     return new Response('Missing prompt', { status: 400 });
   }
 
-  try {
-    const message = await client.messages.create({
-      model: 'claude-opus-4-6',
-      max_tokens: 8000,
-      messages: [
-        {
-          role: 'user',
-          content: prompt,
-        },
-      ],
-    });
+  const stream = await client.messages.stream({
+    model: 'claude-sonnet-4-6',
+    max_tokens: 8000,
+    messages: [{ role: 'user', content: prompt }],
+  });
 
-    const content = message.content[0].type === 'text' ? message.content[0].text : '';
+  const readable = new ReadableStream({
+    async start(controller) {
+      const encoder = new TextEncoder();
+      try {
+        for await (const chunk of stream) {
+          if (
+            chunk.type === 'content_block_delta' &&
+            chunk.delta.type === 'text_delta'
+          ) {
+            controller.enqueue(encoder.encode(chunk.delta.text));
+          }
+        }
+      } catch (err) {
+        controller.error(err);
+      } finally {
+        controller.close();
+      }
+    },
+  });
 
-    return new Response(JSON.stringify({ content }), {
-      status: 200,
-      headers: { 'Content-Type': 'application/json' },
-    });
-  } catch (error) {
-    console.error('Claude API error:', error);
-    return new Response(
-      JSON.stringify({ error: 'Generering feilet. Sjekk API-nøkkel og prøv igjen.' }),
-      { status: 500, headers: { 'Content-Type': 'application/json' } }
-    );
-  }
+  return new Response(readable, {
+    headers: {
+      'Content-Type': 'text/plain; charset=utf-8',
+      'X-Content-Type-Options': 'nosniff',
+    },
+  });
 }

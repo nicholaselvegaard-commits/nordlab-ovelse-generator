@@ -50,6 +50,7 @@ export default function App() {
   const [appState, setAppState] = useState<AppState>('wizard');
   const [exercise, setExercise] = useState<GeneratedExercise | null>(null);
   const [errorMsg, setErrorMsg] = useState('');
+  const [progressChars, setProgressChars] = useState(0);
 
   const update = (updates: Partial<WizardData>) => {
     setData((prev) => ({ ...prev, ...updates }));
@@ -65,8 +66,9 @@ export default function App() {
 
   const handleGenerate = async () => {
     setAppState('generating');
+    setProgressChars(0);
     try {
-      const result = await generateExercise(data);
+      const result = await generateExercise(data, (text) => setProgressChars(text.length));
       setExercise(result);
       setAppState('result');
     } catch (err) {
@@ -99,22 +101,27 @@ export default function App() {
 
   // --- Generating screen ---
   if (appState === 'generating') {
+    const estimatedTotal = 6000;
+    const pct = Math.min(98, Math.round((progressChars / estimatedTotal) * 100));
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-950 to-blue-800 flex items-center justify-center px-4">
-        <div className="text-center text-white">
+        <div className="text-center text-white w-full max-w-sm">
           <div className="flex justify-center mb-6">
-            <Loader2 className="w-16 h-16 animate-spin text-blue-300" />
+            <Loader2 className="w-14 h-14 animate-spin text-blue-300" />
           </div>
           <h2 className="text-2xl font-bold mb-2">Genererer øvelse...</h2>
-          <p className="text-blue-200 text-sm max-w-sm mx-auto">
-            AI-en bygger et komplett, realistisk beredskapsscenario med norsk geografisk og juridisk kontekst.
-            Dette tar 20–40 sekunder.
+          <p className="text-blue-200 text-sm mb-6">
+            AI-en bygger scenario, sekvenser, injects og rollekort.
           </p>
-          <div className="mt-6 flex flex-wrap gap-2 justify-center text-xs text-blue-300">
-            {['Scenario', 'Sekvenser', 'Injects', 'Rollekort', 'Refleksjonsspørsmål'].map((item) => (
-              <span key={item} className="bg-white/10 px-3 py-1 rounded-full">{item}</span>
-            ))}
+          <div className="w-full bg-white/10 rounded-full h-2 mb-2">
+            <div
+              className="bg-blue-300 h-2 rounded-full transition-all duration-300"
+              style={{ width: `${progressChars > 0 ? pct : 5}%` }}
+            />
           </div>
+          <p className="text-xs text-blue-300">
+            {progressChars > 0 ? `${pct}% — ${progressChars} tegn generert` : 'Starter...'}
+          </p>
         </div>
       </div>
     );
