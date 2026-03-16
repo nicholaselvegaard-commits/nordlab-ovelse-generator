@@ -13,7 +13,7 @@ import Step6Duration from './components/wizard/Step6Duration';
 import Step7LearningGoals from './components/wizard/Step7LearningGoals';
 import Step8Complexity from './components/wizard/Step8Complexity';
 import ExerciseDocument from './components/output/ExerciseDocument';
-import { ChevronLeft, ChevronRight, Loader2, Sparkles } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Loader2, Sparkles, Lock } from 'lucide-react';
 
 const TOTAL_STEPS = 8;
 
@@ -28,7 +28,7 @@ const STEP_TITLES = [
   'Kompleksitet',
 ];
 
-type AppState = 'wizard' | 'generating' | 'result' | 'error';
+type AppState = 'gate' | 'wizard' | 'generating' | 'result' | 'error';
 
 function canProceed(step: number, data: WizardData): boolean {
   switch (step) {
@@ -47,7 +47,9 @@ function canProceed(step: number, data: WizardData): boolean {
 export default function App() {
   const [step, setStep] = useState(1);
   const [data, setData] = useState<WizardData>(defaultWizardData);
-  const [appState, setAppState] = useState<AppState>('wizard');
+  const [appState, setAppState] = useState<AppState>('gate');
+  const [gateInput, setGateInput] = useState('');
+  const [gateError, setGateError] = useState(false);
   const [exercise, setExercise] = useState<GeneratedExercise | null>(null);
   const [errorMsg, setErrorMsg] = useState('');
   const [progressChars, setProgressChars] = useState(0);
@@ -72,9 +74,22 @@ export default function App() {
       setExercise(result);
       setAppState('result');
     } catch (err) {
-      setErrorMsg(err instanceof Error ? err.message : 'Ukjent feil');
-      setAppState('error');
+      const msg = err instanceof Error ? err.message : 'Ukjent feil';
+      if (msg.includes('401') || msg.toLowerCase().includes('passord')) {
+        setGateError(true);
+        setAppState('gate');
+      } else {
+        setErrorMsg(msg);
+        setAppState('error');
+      }
     }
+  };
+
+  const handleGate = (e: React.FormEvent) => {
+    e.preventDefault();
+    sessionStorage.setItem('demo_password', gateInput);
+    setAppState('wizard');
+    setGateError(false);
   };
 
   const handleReset = () => {
@@ -98,6 +113,42 @@ export default function App() {
       default: return null;
     }
   };
+
+  // --- Password gate ---
+  if (appState === 'gate') {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-950 to-blue-800 flex items-center justify-center px-4">
+        <div className="bg-white rounded-2xl shadow-xl p-8 w-full max-w-sm">
+          <div className="text-center mb-6">
+            <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-3">
+              <Lock className="w-6 h-6 text-blue-800" />
+            </div>
+            <h1 className="text-xl font-bold text-blue-900">NORDLAB Øvelsesgenerator</h1>
+            <p className="text-sm text-gray-500 mt-1">Skriv inn tilgangskoden for å fortsette</p>
+          </div>
+          <form onSubmit={handleGate} className="space-y-4">
+            <input
+              type="password"
+              value={gateInput}
+              onChange={(e) => { setGateInput(e.target.value); setGateError(false); }}
+              placeholder="Tilgangskode"
+              autoFocus
+              className={`w-full px-4 py-3 rounded-xl border-2 text-sm focus:outline-none transition-colors ${
+                gateError ? 'border-red-400 bg-red-50' : 'border-gray-200 focus:border-blue-500'
+              }`}
+            />
+            {gateError && <p className="text-xs text-red-600">Feil tilgangskode</p>}
+            <button
+              type="submit"
+              className="w-full bg-blue-900 text-white py-3 rounded-xl font-semibold hover:bg-blue-800 transition-colors"
+            >
+              Logg inn
+            </button>
+          </form>
+        </div>
+      </div>
+    );
+  }
 
   // --- Generating screen ---
   if (appState === 'generating') {
