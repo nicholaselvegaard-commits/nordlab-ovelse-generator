@@ -107,9 +107,8 @@ ${data.extraContext ? `**Tilleggsinformasjon fra øvelsesansvarlig:**\n${data.ex
 
 ## KRAV TIL OUTPUT
 
-Generer øvelsen som et strukturert JSON-objekt med følgende format. Vær SVÆRT DETALJERT og REALISTISK:
+Generer øvelsen som et strukturert JSON-objekt med følgende format. Vær SVÆRT DETALJERT og REALISTISK. Output BARE rå JSON, ingen forklaring eller markdown rundt det:
 
-\`\`\`json
 {
   "tittel": "Navn på øvelsen (kreativt og beskrivende, f.eks. 'Øvelse Kystberedskap' eller 'Øvelse Nordfjord')",
   "undertittel": "Kort beskrivelse av hva øvelsen handler om",
@@ -171,7 +170,6 @@ Generer øvelsen som et strukturert JSON-objekt med følgende format. Vær SVÆR
     "Vedlegg B: Relevante planverk og lovverk"
   ]
 }
-\`\`\`
 
 ## VIKTIGE KRAV TIL REALISME:
 1. Bruk EKTE norske stedsnavn, kommunenavn og geografiske detaljer
@@ -183,5 +181,5 @@ Generer øvelsen som et strukturert JSON-objekt med følgende format. Vær SVÆR
 7. Rollekort skal reflektere reelle norske roller og ansvarslinjer
 8. Diskusjonsspørsmål skal utfordre deltakerne på samvirke-dilemmaer og rolleforståelse
 
-Svar KUN med det komplette JSON-objektet, ingen forklaring rundt det.`;
+Svar KUN med det komplette JSON-objektet (rå JSON, ingen \`\`\`json wrapper, ingen forklaring).`;
 }

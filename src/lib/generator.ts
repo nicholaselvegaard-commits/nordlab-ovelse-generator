@@ -33,11 +33,22 @@ export async function generateExercise(
     onProgress?.(fullText);
   }
 
-  // Extract JSON
-  const jsonMatch =
-    fullText.match(/```json\s*([\s\S]*?)\s*```/) ||
-    fullText.match(/```\s*([\s\S]*?)\s*```/);
-  const jsonStr = jsonMatch ? jsonMatch[1] : fullText;
+  // Extract JSON — try multiple strategies
+  let jsonStr = fullText.trim();
+
+  // Strategy 1: extract from ```json ... ``` block
+  const fencedMatch = fullText.match(/```json\s*([\s\S]*?)\s*```/) ||
+    fullText.match(/```\s*(\{[\s\S]*)\s*```/);
+  if (fencedMatch) {
+    jsonStr = fencedMatch[1].trim();
+  } else {
+    // Strategy 2: find first { and last } in the text
+    const firstBrace = fullText.indexOf('{');
+    const lastBrace = fullText.lastIndexOf('}');
+    if (firstBrace !== -1 && lastBrace > firstBrace) {
+      jsonStr = fullText.slice(firstBrace, lastBrace + 1);
+    }
+  }
 
   try {
     return JSON.parse(jsonStr) as GeneratedExercise;
