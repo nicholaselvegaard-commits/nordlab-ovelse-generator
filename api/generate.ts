@@ -1,5 +1,4 @@
-export const runtime = 'edge';
-export const maxDuration = 60;
+export const config = { runtime: 'edge', maxDuration: 60 };
 
 export default async function handler(req: Request): Promise<Response> {
   if (req.method !== 'POST') {
